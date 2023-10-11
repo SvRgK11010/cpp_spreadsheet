@@ -4,6 +4,14 @@
 #include "common.h"
 
 #include <functional>
+#include <unordered_map>
+
+class CellHasher {
+public:
+    size_t operator()(const Position pos) const {
+        return pos.row * 41 + pos.col * 41 * 41;
+    }
+};
 
 class Sheet : public SheetInterface {
 public:
@@ -21,14 +29,10 @@ public:
     void PrintValues(std::ostream& output) const override;
     void PrintTexts(std::ostream& output) const override;
 
-    const Cell* GetConcreteCell(Position pos) const;
-    Cell* GetConcreteCell(Position pos);
+    // Можете дополнить ваш класс нужными полями и методами
+
 
 private:
-    void MaybeIncreaseSizeToIncludePosition(Position pos);
-    void PrintCells(std::ostream& output,
-                    const std::function<void(const CellInterface&)>& printCell) const;
-    Size GetActualSize() const;
-
-    std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
+    Size sheet_size_;
+    std::unordered_map<Position, std::unique_ptr<Cell>, CellHasher> sheet_;
 };
