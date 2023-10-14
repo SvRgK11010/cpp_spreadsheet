@@ -1,16 +1,14 @@
 #pragma once
 
+#include <unordered_set>
+#include <optional>
+
 #include "common.h"
 #include "formula.h"
 
-#include <functional>
-#include <unordered_set>
-
-class Sheet;
-
 class Cell : public CellInterface {
 public:
-    Cell(Sheet& sheet);
+    Cell(SheetInterface& sheet);
     ~Cell();
 
     void Set(std::string text);
@@ -19,18 +17,56 @@ public:
     Value GetValue() const override;
     std::string GetText() const override;
     std::vector<Position> GetReferencedCells() const override;
-
-    bool IsReferenced() const;
+    void ClearCache();
 
 private:
     class Impl;
-    class EmptyImpl;
-    class TextImpl;
-    class FormulaImpl;
 
     std::unique_ptr<Impl> impl_;
+    SheetInterface& sheet_;
+    mutable std::optional<Value> cache_;
+    std::unordered_set<Cell*> referenced_cells_; //��������� ������
+    std::unordered_set<Cell*> dependent_cells_; //��������� ������
 
-    // Добавьте поля и методы для связи с таблицей, проверки циклических 
-    // зависимостей, графа зависимостей и т. д.
+    bool HasCyclicDependencies(const std::vector<Position>& ref_cells, Cell* search_val);
+
+    class Impl {
+    public:
+        virtual Value GetValue(const SheetInterface& sheet) const = 0;
+        virtual std::string GetText() const = 0;
+        virtual std::vector<Position> GetReferencedCells() const = 0;
+        virtual ~Impl() = default;
+    };
+
+    class EmptyImpl : public Impl {
+    public:
+        EmptyImpl() = default;
+        ~EmptyImpl() = default;
+        Value GetValue(const SheetInterface& sheet) const override;
+        std::string GetText() const override;
+        std::vector<Position> GetReferencedCells() const override;
+    };
+
+    class TextImpl : public Impl {
+    public:
+        explicit TextImpl(std::string text);
+        Value GetValue(const SheetInterface& sheet) const override;
+        std::string GetText() const override;
+        std::vector<Position> GetReferencedCells() const override;
+
+    private:
+        std::string text_;
+    };
+
+    class FormulaImpl : public Impl {
+    public:
+        explicit FormulaImpl(std::string formula);
+        Value GetValue(const SheetInterface& sheet) const override;
+        std::string GetText() const override;
+        std::vector<Position> GetReferencedCells() const override;
+
+    private:
+        std::unique_ptr<FormulaInterface> formula_;
+    };
 
 };
