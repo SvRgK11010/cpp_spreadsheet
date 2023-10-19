@@ -49,7 +49,7 @@ void Cell::Set(std::string text) {
 }
 
 void Cell::Clear() {
-	impl_ = nullptr;
+	impl_ = std::make_unique<EmptyImpl>();
 }
 
 Cell::Value Cell::GetValue() const {
